@@ -1,0 +1,121 @@
+.spell-suggestion-menu {
+  position: fixed;
+  z-index: 9999999;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border: none;
+  min-width: 200px;
+  max-width: 320px;
+  animation: slideIn 0.15s ease-out;
+  transform: translateY(5px);
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(0) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(5px) scale(1);
+    }
+  }
+
+  .ant-menu {
+    border: none;
+    background: transparent;
+    padding: 0;
+    max-height: 190px;
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    // Custom scrollbar
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: rgba(209, 213, 219, 1);
+      border: none;
+      border-radius: 3px;
+
+      &:hover {
+        background-color: rgba(156, 163, 175, 1);
+      }
+    }
+
+    // Firefox scrollbar
+    scrollbar-width: thin;
+    scrollbar-color: rgba(209, 213, 219, 1) transparent;
+
+    .ant-menu-item {
+      margin: 0;
+      border-radius: 6px;
+      height: auto;
+      line-height: 1.5;
+      padding: 8px 16px;
+      margin-bottom: 2px;
+      transition: all 0.1s ease;
+      font-size: 14px;
+      font-weight: 500;
+      color: rgba(0, 0, 0, 0.88);
+      border: none;
+      outline: none;
+      width: 100%;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+
+      &:focus,
+      &:focus-within,
+      &:focus-visible {
+        outline: none;
+        border: none;
+      }
+
+      &:first-child {
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
+      }
+
+      &:last-child {
+        margin-bottom: 0;
+        border-bottom-left-radius: 12px;
+        border-bottom-right-radius: 12px;
+      }
+
+      &:hover {
+        background-color: rgba(239, 246, 255, 1);
+        color: rgba(29, 78, 216, 1);
+      }
+
+      &:active {
+        background-color: rgba(219, 234, 254, 1);
+        color: rgba(29, 78, 216, 1);
+      }
+    }
+
+    .ant-menu-item-selected {
+      background-color: rgba(219, 234, 254, 1);
+      color: rgba(29, 78, 216, 1);
+      font-weight: 600;
+    }
+  }
+
+  .no-suggestions {
+    padding: 8px 16px;
+    color: rgba(156, 163, 175, 1);
+    font-size: 14px;
+    font-style: italic;
+    text-align: center;
+  }
+}
