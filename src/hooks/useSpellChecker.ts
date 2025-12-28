@@ -29,7 +29,7 @@ async function getSpellInstance(): Promise<{
         const commonWords = ["hello", "world", "test", "the", "is", "a", "an"];
         return commonWords.includes(word.toLowerCase());
       },
-      suggest: (word: string) => {
+      suggest: () => {
         return ["hello", "world", "test"];
       },
     },

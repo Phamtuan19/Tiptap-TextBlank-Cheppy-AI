@@ -68,7 +68,7 @@ export /* =========================
 7. Helper function to build content from template
 ========================= */
 const buildContentFromTemplate = (
-  editor: Editor,
+  _editor: Editor,
   template: string,
   opts: string[]
 ) => {
