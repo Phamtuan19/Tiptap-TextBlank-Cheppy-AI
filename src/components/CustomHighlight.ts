@@ -108,8 +108,9 @@ export const CustomHighlight = Highlight.extend({
               tr.removeMark(fromPos, toPos, this.type);
             });
 
-            // Giữ nguyên selection sau khi toggle
-            tr.setSelection(TextSelection.create(tr.doc, from, to));
+            // Bỏ selection và focus vào cuối đoạn vừa được bôi đen
+            const endPos = Math.min(to, tr.doc.content.size);
+            tr.setSelection(TextSelection.create(tr.doc, endPos));
 
             if (dispatch) {
               dispatch(tr);
@@ -153,8 +154,9 @@ export const CustomHighlight = Highlight.extend({
             tr.removeMark(fromPos, toPos, this.type);
           });
 
-          // Giữ nguyên selection sau khi toggle
-          tr.setSelection(TextSelection.create(tr.doc, from, to));
+          // Bỏ selection và focus vào cuối đoạn vừa được bôi đen
+          const endPos = Math.min(to, tr.doc.content.size);
+          tr.setSelection(TextSelection.create(tr.doc, endPos));
 
           if (dispatch) {
             dispatch(tr);
