@@ -77,8 +77,8 @@ const App: React.FC = () => {
                                     setOptions(newOptions)
                                 }}
                                 size="middle"
-                                maxBlankLength={50}
-                                maxBlankCount={10}
+                                maxBlankLength={10}
+                                maxBlankCount={2}
                                 disabled={disabled}
                                 hasBlank
                             />

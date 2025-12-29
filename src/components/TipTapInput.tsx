@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -13,9 +13,9 @@ import { useDebounce } from '../hooks/useDebounce'
 import SpellSuggestionMenu from './SpellSuggestionMenu'
 
 import './TipTapInput.scss'
-import BlankButton from './BlankButton'
 import { CustomHighlight } from './CustomHighlight'
 import { buildContentFromTemplate, editorToTemplate, parseHtmlMarkToTemplate } from './helpers'
+import { Button } from 'antd'
 
 
 
@@ -50,8 +50,8 @@ const TipTapInput: React.FC<TipTapInputProps> = ({
     options = [],
     onOptionsChange,
     disabled = false,
-    // maxBlankLength = 50,
-    // maxBlankCount = 10,
+    maxBlankLength = 50,
+    maxBlankCount = 10,
     placeholder,
     className,
     style,
@@ -63,10 +63,9 @@ const TipTapInput: React.FC<TipTapInputProps> = ({
     const previousOptionsRef = useRef<string[]>(options)
     const isInitializedRef = useRef(false)
     const isApplyingSpellMarksRef = useRef(false)
-    // const [, forceUpdate] = useReducer(x => x + 1, 0)
+    const [, forceUpdate] = useReducer(x => x + 1, 0)
 
     // Spell check state
-    // const [spellErrors, setSpellErrors] = useState<Map<string, SpellGrammarError>>(new Map())
     const [selectedError, setSelectedError] = useState<{
         error: SpellGrammarError
         position: { x: number; y: number }
@@ -284,7 +283,7 @@ const TipTapInput: React.FC<TipTapInputProps> = ({
                 const { template, options } = parseHtmlMarkToTemplate(html)
                 onChange?.(template)
                 onOptionsChange?.(options)
-                // forceUpdate()
+                forceUpdate()
                 return
             }
 
@@ -293,7 +292,7 @@ const TipTapInput: React.FC<TipTapInputProps> = ({
             setEditorText(text)
             editorValueRef.current = text
             onChange?.(template)
-            // forceUpdate()
+            forceUpdate()
         },
         onSelectionUpdate: ({ editor }) => {
             const { state, view } = editor
@@ -309,7 +308,7 @@ const TipTapInput: React.FC<TipTapInputProps> = ({
                 )
             }
 
-            // forceUpdate()
+            forceUpdate()
         }
 
     })
@@ -594,86 +593,94 @@ const TipTapInput: React.FC<TipTapInputProps> = ({
                 editor={editor}
                 options={{ placement: 'bottom', offset: 8, flip: true }}
                 shouldShow={({ editor, state }) => {
-                    // Không hiển thị nếu selection có spell error mark
+                    if (!editor) return false
+
                     const { from, to } = state.selection
-                    if (from === to) return false
+                    if (from === to) return false // không có selection
+
+                    const highlightMark = editor.schema.marks.highlight
+                    const hasHighlight = state.doc.rangeHasMark(from, to, highlightMark)
+
+                    // Nếu selection đang có highlight → là Un Blank → luôn hiển thị
+                    if (hasHighlight) return true
+
+                    // Kiểm tra spell error → vẫn ẩn nếu selection có lỗi
                     const hasSpellError = state.doc.rangeHasMark(from, to, editor.schema.marks.spellError)
-                    return !hasSpellError
+                    if (hasSpellError) return false
+
+                    // Chỉ kiểm tra giới hạn nếu là Add Blank
+                    const selectedText = state.doc.textBetween(from, to, '\n', '\n')
+                    if (selectedText.length > (maxBlankLength ?? Infinity)) return false
+
+                    // Đếm tổng số highlight hiện tại
+                    let highlightCount = 0
+                    state.doc.descendants((node) => {
+                        if (!node.isText) return
+                        if (node.marks.some(m => m.type.name === 'highlight')) highlightCount++
+                    })
+                    if (highlightCount >= (maxBlankCount ?? Infinity)) return false
+
+                    return true
                 }}
+
             >
-                {/* {(() => {
+                {(() => {
                     // Kiểm tra trực tiếp từ editor state xem selection có highlight không
                     const { from, to } = editor.state.selection
                     const hasHighlight = editor.state.doc.rangeHasMark(from, to, editor.schema.marks.highlight)
 
                     return (
                         <Button
-                           
+                            onClick={() => {
+                                if (!editor) return
+
+                                const { state, view } = editor
+                                const spellMark = state.schema.marks.spellError
+
+                                // Lưu selection hiện tại
+                                const { from: selFrom, to: selTo } = state.selection
+                                const currentSpellErrors = new Map(spellErrorsRef.current)
+
+                                // Tạo transaction mới
+                                const tr = state.tr
+
+                                // Toggle highlight cho selection
+                                const highlightMark = state.schema.marks.highlight
+                                const hasHighlight = state.doc.rangeHasMark(selFrom, selTo, highlightMark)
+
+                                if (hasHighlight) {
+                                    tr.removeMark(selFrom, selTo, highlightMark)
+                                } else {
+                                    tr.addMark(selFrom, selTo, highlightMark.create())
+                                }
+
+                                // Re-apply spell errors mà vẫn giữ selection
+                                currentSpellErrors.forEach((error) => {
+                                    const { start, end, word } = error
+                                    if (start >= 0 && end <= tr.doc.content.size && start < end) {
+                                        const textBetween = tr.doc.textBetween(start, end, '\n', '\n')
+                                        if (textBetween === word) {
+                                            const errorId = `${start}-${end}`
+                                            tr.addMark(start, end, spellMark.create({ errorId }))
+                                        }
+                                    }
+                                })
+
+                                // Restore selection cũ
+                                tr.setSelection(TextSelection.create(tr.doc, selFrom, selTo))
+
+                                // Dispatch transaction
+                                view.dispatch(tr)
+
+                                // Force update BubbleMenu
+                                forceUpdate()
+                            }}
                             className={hasHighlight ? 'is-active' : ''}
                             size={size}>
                             {hasHighlight ? 'Un Blank' : 'Add Blank'}
                         </Button>
                     )
-                })()} */}
-
-                <BlankButton editor={editor} size={size} onClick={() => {
-                    // Lưu spell errors hiện tại trước khi toggle
-                    const currentSpellErrors = new Map(spellErrorsRef.current)
-
-                    editor.chain().focus().toggleHighlight().run()
-
-                    // Re-apply spell errors sau khi toggle highlight
-                    // Đợi một chút để document được cập nhật
-                    setTimeout(() => {
-                        if (!editor) return
-
-                        const { state } = editor
-                        const { tr } = state
-                        const spellMark = editor.schema.marks.spellError
-                        let modified = false
-
-                        // Remove all existing spell error marks
-                        state.doc.descendants((node, pos) => {
-                            if (!node.isText) return
-                            if (node.marks.some(m => m.type === spellMark)) {
-                                tr.removeMark(pos, pos + node.nodeSize - 2, spellMark)
-                                modified = true
-                            }
-                        })
-
-                        // Re-apply spell errors
-                        currentSpellErrors.forEach((error) => {
-                            const { start, end } = error
-
-                            // Kiểm tra xem positions còn hợp lệ không
-                            if (start >= 0 && end <= state.doc.content.size && start < end) {
-                                const textBetween = state.doc.textBetween(start, end, '\n', '\n')
-
-                                // Chỉ apply nếu text vẫn khớp
-                                if (textBetween === error.word) {
-                                    const errorId = `${start}-${end}`
-                                    tr.addMark(
-                                        start,
-                                        end,
-                                        spellMark.create({ errorId })
-                                    )
-                                    modified = true
-                                }
-                            }
-                        })
-
-                        if (modified) {
-                            isApplyingSpellMarksRef.current = true
-                            editor.view.dispatch(tr)
-                            setTimeout(() => {
-                                isApplyingSpellMarksRef.current = false
-                            }, 0)
-                        }
-                    }, 50)
-
-                    // Force update để re-render button
-                    // setTimeout(() => forceUpdate(), 0)
-                }} />
+                })()}
             </BubbleMenu>}
 
             {selectedError && (
